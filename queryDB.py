@@ -1,14 +1,27 @@
 import requests
 import time
 import json
+import configparser
+from kafka import KafkaProducer
 
-BASE_URL = 'https://api.themoviedb.org/3/'
-API_KEY = '935ab085c098ef9bc68d3d49d2ae8140'
 
-# def createSession():
-#     res = requests.get(BASE_URL + 'authentication/token/new?api_key=' + API_KEY)
-#     print(res.json())
-#     with open('api.txt', mode='w'):
+
+
+config = configparser.ConfigParser()
+config.read('query.conf')
+
+FROM_INTERNET = config['GENERAL']['FROM_INTERNET'] == 'True'
+SAVE_TO_FILE = config['GENERAL']['SAVE_TO_FILE'] == 'True'
+BASE_URL = config['API']['BASE_URL']
+API_KEY = config['API']['KEY']
+
+
+WRITE_FILE = config['FILE']['WRITE']
+READ_FILE = config['FILE']['READ']
+
+KAFKA_IP = config['KAFKA']['IP']
+KAFKA_PORT = config['KAFKA']['PORT']
+TOPIC = config['KAFKA']['TOPIC']
 
 
 def getDiscover(year, page='1'):
@@ -17,7 +30,6 @@ def getDiscover(year, page='1'):
                            '&page=' + page + '&primary_release_year=' + year)
         return res
     except:
-        print("***************************** SPLEEPING :(")
         time.sleep(1)
         return getReview(year, id)
 
@@ -27,17 +39,15 @@ def getReview(id):
         res = requests.get(BASE_URL + 'movie/' + id + '/reviews?api_key=' + API_KEY)
         return res
     except:
-        print("***************************** SPLEEPING :(")
         time.sleep(1)
         return getReview(id)
 
 
-with open('data.json', 'w') as f:
-    f.write('{movies: [\n')
-    for year in range(1950, 2017):
-        print('>>>>>>>>>>>>>>>>>> YEAR IS', year)
+def fetch_db_internet(producer, f=None):
+    for page in range(1, 1000):
+        print('>>>>>>>>>>>>>>>>>> PAGE IS', page)
         try:
-            for page in range(1, 1000):
+            for year in range(1950, 2017):
                 print('>>>>>> PAGE IS', page, 'IN', year)
                 try:
                     res = getDiscover(str(year), str(page)).json()
@@ -46,9 +56,11 @@ with open('data.json', 'w') as f:
                             res_reviews = getReview(str(r['id'])).json()
                             if len(res_reviews['results']) > 0:
                                 r['comments'] = res_reviews['results']
-                                # print(r)
-                                json.dump(r, f)
-                                f.write(',\n')
+                                if SAVE_TO_FILE and not f is None:
+                                    json.dump(r, f)
+                                    f.write(',\n')
+                                producer.send(TOPIC, r)
+                                print('Send:', r)
                         except:
                             print("Weird stuff3... continuing")
                             continue
@@ -58,4 +70,29 @@ with open('data.json', 'w') as f:
         except:
             print("Weird stuff1... continuing")
             continue
-    f.write(']}')
+
+
+def fetch_db_file(producer, f):
+    for i, line in enumerate(f):
+        if len(line) > 1:
+            data = json.loads(line)
+            print('Send:', data)
+            producer.send(TOPIC, data)
+
+
+def fetch():
+    producer = KafkaProducer(bootstrap_servers=[KAFKA_IP + ':' + KAFKA_PORT],
+                             value_serializer=lambda m: json.dumps(m).encode('ascii'))
+    if FROM_INTERNET:
+        f = None
+        if SAVE_TO_FILE:
+            f = open(WRITE_FILE, 'w')
+        fetch_db_internet(producer, f)
+    else: # From file
+        with open(READ_FILE, 'r') as f:
+            fetch_db_file(producer, f)
+    print('Start fulshing to kafka...')
+    producer.flush()
+
+
+fetch()
