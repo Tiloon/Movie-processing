@@ -12,3 +12,6 @@ libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
 libraryDependencies +=  "com.typesafe.play" %% "play-json" % "2.3.0"
+
+scalaSource in Test := { (baseDirectory in Test)(_ / "tests") }.value
+scalaSource in Compile := { (baseDirectory in Compile)(_ / "src") }.value

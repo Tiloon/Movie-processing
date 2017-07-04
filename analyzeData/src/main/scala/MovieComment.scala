@@ -1,8 +1,5 @@
 import play.api.libs.json.Json
 
-/**
-  * Created by tilon on 7/3/17.
-  */
 object MovieComment {
   case class MovieComment (author : String,
                       url : String,

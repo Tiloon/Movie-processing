@@ -2,9 +2,6 @@ import Movie.Movie
 import MovieComment.MovieComment
 import play.api.libs.json.Json
 
-/**
-  * Created by tilon on 7/3/17.
-  */
 object AnalyzedMovie {
   case class AnalyzedMovie(backdrop_path: Option[String],
                            adult: Boolean,

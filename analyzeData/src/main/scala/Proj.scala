@@ -10,10 +10,6 @@ import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
 import org.apache.spark.streaming.kafka010._
 import play.api.libs.json._
 
-/**
-  * Created by tilon on 7/3/17.
-  */
-
 object Proj {
   def stringToMovie(str: String) : Option[Movie] = Json.parse(str).validate[Movie] match {
     case JsError(e) =>
@@ -59,7 +55,7 @@ object Proj {
       rdd.foreachPartition(partition => {
         println("Partition starting:")
         if (partition.nonEmpty)
-          PartitionIteration(partition)
+          partitionIteration(partition)
       })
     }
 
@@ -70,7 +66,7 @@ object Proj {
     println("terminated")
   }
 
-  def PartitionIteration(partition: Iterator[ConsumerRecord[String, String]]): Unit = {
+  def partitionIteration(partition: Iterator[ConsumerRecord[String, String]]): Unit = {
     // Initializing Kafka producer for the partition
     val props = new java.util.HashMap[String, Object]()
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
@@ -97,5 +93,7 @@ object Proj {
           })
       }
     }
+    producer.flush()
+    producer.close()
   }
 }
