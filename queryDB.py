@@ -58,9 +58,9 @@ def fetch_db_internet(producer, f=None):
                                 r['comments'] = res_reviews['results']
                                 if SAVE_TO_FILE and not f is None:
                                     json.dump(r, f)
-                                    f.write(',\n')
+                                    f.write('\n')
                                 producer.send(TOPIC, r)
-                                print('Send:', r)
+                                # print('Send:', r)
                         except:
                             print("Weird stuff3... continuing")
                             continue
