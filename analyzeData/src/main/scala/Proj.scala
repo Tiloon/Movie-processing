@@ -1,9 +1,8 @@
 import AnalyzedMovie.AnalyzedMovie
 import Movie.Movie
-import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer._
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.spark.SparkConf
+import org.apache.spark.{SparkConf, SparkFiles}
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
 import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
@@ -35,14 +34,21 @@ object Proj {
     new AnalyzedMovie(movie)
   }
 
-  def sendMessage(x: AnalyzedMovie, producer: KafkaProducer[String, String]) = {
-    val message = new ProducerRecord[String, String]("AnalyzedData", null, Json.toJson(x).toString())
+//  def sendMessage(x: AnalyzedMovie, producer: KafkaProducer[String, String]) = {
+//    val message = new ProducerRecord[String, String]("AnalyzedData", null, Json.toJson(x).toString())
+//    producer.send(message)
+//  }
+
+  def sendMessage(x: String, producer: KafkaProducer[String, String]) = {
+    val message = new ProducerRecord[String, String]("AnalyzedData", null, x)
     producer.send(message)
   }
 
   def getStream() = {
+    val scriptFile = "script.py"
     val ssc = new StreamingContext(conf, Seconds(2))
     ssc.checkpoint("checkpoint")
+    ssc.sparkContext.addFile(scriptFile)
 
     val topics = Array("test")
     val stream = KafkaUtils.createDirectStream[String, String](
@@ -52,10 +58,26 @@ object Proj {
     )
     stream.map(record => (record.key, record.value))
     stream.foreachRDD { rdd =>
-      rdd.foreachPartition(partition => {
-        println("Partition starting:")
-        if (partition.nonEmpty)
-          partitionIteration(partition)
+      // Calling the python script to analize the data
+      val pipeRDD = rdd.map(x => x.value()).pipe(SparkFiles.get(scriptFile))
+      // Sending the data to kafka
+      pipeRDD.foreachPartition(partition => {
+        // Initializing Kafka producer for the partition
+        val props = new java.util.HashMap[String, Object]()
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+          "org.apache.kafka.common.serialization.StringSerializer")
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+          "org.apache.kafka.common.serialization.StringSerializer")
+        val producer = new KafkaProducer[String, String](props)
+        partition.foreach {
+          // Handling every record
+          case movieConsumerRecord: String =>
+            println(movieConsumerRecord)
+            sendMessage(movieConsumerRecord, producer)
+        }
+        producer.flush()
+        producer.close()
       })
     }
 
@@ -66,34 +88,36 @@ object Proj {
     println("terminated")
   }
 
-  def partitionIteration(partition: Iterator[ConsumerRecord[String, String]]): Unit = {
-    // Initializing Kafka producer for the partition
-    val props = new java.util.HashMap[String, Object]()
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-      "org.apache.kafka.common.serialization.StringSerializer")
-    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-      "org.apache.kafka.common.serialization.StringSerializer")
-    val producer = new KafkaProducer[String, String](props)
-    partition.foreach {
-      // Handling every record
-      case movieConsumerRecord: ConsumerRecord[String, String] => {
-        List(movieConsumerRecord).map(x => x.value())
-          .flatMap(x => try {
-            stringToMovie(x)
-          } catch {
-            case e: Exception =>
-              println(e)
-              None
-          })
-          .map(x => analyzeMovie(x))
-          .foreach(x => {
-            println("Found movie: " + x.title)
-            sendMessage(x, producer)
-          })
-      }
-    }
-    producer.flush()
-    producer.close()
-  }
+//  def partitionIteration(partition: Iterator[String]): Unit = {
+//    // Initializing Kafka producer for the partition
+//    val props = new java.util.HashMap[String, Object]()
+//    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+//    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+//      "org.apache.kafka.common.serialization.StringSerializer")
+//    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+//      "org.apache.kafka.common.serialization.StringSerializer")
+//    val producer = new KafkaProducer[String, String](props)
+//    partition.foreach {
+//      // Handling every record
+//      case movieConsumerRecord: String =>
+////        println("data: " + movieConsumerRecord)
+////        return
+//        List(movieConsumerRecord)
+//          .filter(x => !x.isEmpty)
+//          .flatMap(x => try {
+//            stringToMovie(x)
+//          } catch {
+//            case e: Exception =>
+//              println(e)
+//              None
+//          })
+//          .map(x => analyzeMovie(x))
+//          .foreach(x => {
+//            println("Found movie: " + x.title)
+//            sendMessage(x, producer)
+//          })
+//    }
+//    producer.flush()
+//    producer.close()
+//  }
 }
