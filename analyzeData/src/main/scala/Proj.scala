@@ -29,6 +29,19 @@ object Proj extends App {
   }
 
   def getStream() = {
+    val kafkaParams = Map[String, Object](
+      "bootstrap.servers" -> "localhost:9092",
+      "key.deserializer" -> classOf[StringDeserializer],
+      "value.deserializer" -> classOf[StringDeserializer],
+      "group.id" -> "use_a_separate_group_id_for_each_stream",
+      //    "auto.offset.reset" -> "latest",
+      "auto.offset.reset" -> "earliest",
+      "enable.auto.commit" -> (false: java.lang.Boolean)
+    )
+    val conf = new SparkConf()
+      .setAppName("Wordcount")
+      .setMaster ("local[*]")
+
     val scriptFile = "script.py"
     val ssc = new StreamingContext(conf, Seconds(2))
     ssc.checkpoint("checkpoint")
@@ -54,12 +67,14 @@ object Proj extends App {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
           "org.apache.kafka.common.serialization.StringSerializer")
         val producer = new KafkaProducer[String, String](props)
-        println(Calendar.getInstance.getTime + " Analyzing: " + partition.length + " elements")
+        print(Calendar.getInstance.getTime + " Analyzing: ")
         partition.foreach {
           // Handling every record
           case movieConsumerRecord: String =>
+            print(".")
             sendMessage(movieConsumerRecord, producer)
         }
+        println()
         producer.flush()
         producer.close()
       })
@@ -75,19 +90,6 @@ object Proj extends App {
     ssc.awaitTermination()
     println("terminated")
   }
-
-  val kafkaParams = Map[String, Object](
-    "bootstrap.servers" -> "localhost:9092",
-    "key.deserializer" -> classOf[StringDeserializer],
-    "value.deserializer" -> classOf[StringDeserializer],
-    "group.id" -> "use_a_separate_group_id_for_each_stream",
-    //    "auto.offset.reset" -> "latest",
-    "auto.offset.reset" -> "earliest",
-    "enable.auto.commit" -> (false: java.lang.Boolean)
-  )
-  val conf = new SparkConf()
-    .setAppName("Wordcount")
-    .setMaster ("local[*]")
 
   getStream()
 }
