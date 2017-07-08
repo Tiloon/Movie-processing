@@ -1,1 +1,8 @@
 This is an amazing scala project using spark and kafka!
+
+
+analyzeData: reads from kafka new movies, and write analyzed movies to kafka
+initKafkaPython: add new movies data to kafka
+persist: persister analyzed movies from kafka to file system
+sparkNotebook: use analyzed movies from kafka to print cool graphics
+startKafka: starts the kafka server
