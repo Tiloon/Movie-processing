@@ -1,4 +1,4 @@
-name := "spark-movie"
+name := "persister-movie"
 
 version := "1.0"
 
