@@ -63,7 +63,11 @@ object Proj extends App {
         producer.flush()
         producer.close()
       })
+      //      val sqlContext = new org.apache.spark.sql.SQLContext(ssc.sparkContext)
+      //      val rec = sqlContext.read.json(rdd.map(x => x.value()))
+      //      rec.rdd.saveAsTextFile("record")
     }
+
 
     println("starting")
     ssc.start()

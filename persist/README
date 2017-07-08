@@ -1,2 +1,2 @@
 How to use:
-42sh$ sbt run
+42sh$ sbt run 2>/dev/null

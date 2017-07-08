@@ -1,11 +1,9 @@
 import java.io.FileWriter
 import java.util.{Calendar, Collections, Properties}
-
+import scala.collection.JavaConverters._
 import org.apache.kafka.clients.consumer.{ConsumerRecords, KafkaConsumer}
 
-import scala.collection.JavaConverters._
-
-object Persister extends App {
+object Persister {
   val TOPIC = "AnalyzedData"
   val outputFile = "output.txt"
 
@@ -14,7 +12,7 @@ object Persister extends App {
   props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
   props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
   props.put("group.id", "persister")
-//  props.put("auto.offset.reset", "latest")
+  props.put("auto.offset.reset", "latest")
   props.put("auto.offset.reset", "earliest")
 
   val consumer = new KafkaConsumer[String, String](props)
@@ -50,7 +48,7 @@ object Persister extends App {
 //      stream.foreachRDD { rdd =>
 //         Calling the python script to analize the data
 //        val pipeRDD = rdd.map(x => x.value()).pipe(SparkFiles.get(scriptFile))
-        // Sending the data to kafka
+//         Sending the data to kafka
 //        pipeRDD.foreachPartition(partition => {
 //           Initializing Kafka producer for the partition
 //          val props = new java.util.HashMap[String, Object]()
@@ -70,7 +68,6 @@ object Persister extends App {
 //          producer.close()
 //        })
 //      }
-
 //      println("starting")
 //      ssc.start()
 //      println("awaiting")

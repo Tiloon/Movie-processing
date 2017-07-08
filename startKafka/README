@@ -11,3 +11,6 @@ docker-compose stop
 
 help:
 https://hub.docker.com/r/wurstmeister/kafka/
+
+config:
+It might be needed to change the local network ip in the .yml file
