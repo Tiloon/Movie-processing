@@ -20,7 +20,7 @@ def handleLine(line, payload):
         comments = ans['comments']
         for comment in comments:
             comment['sentiment'] = 1 if payload.use([comment['content'].encode()])[0] == 'positive' else 0
-        print(ans)
+        print(json.dumps(ans))
 
 
 with open(sys.argv[0].rsplit('/', 1)[0] + '/payload.pickle', 'rb') as f:
