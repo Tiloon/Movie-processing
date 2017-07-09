@@ -14,8 +14,6 @@ import play.api.libs.json._
 import scala.collection.Map
 
 object Proj extends App {
-  val ok = new Array(5)
-  ok.map
   def stringToMovie(str: String) : Option[Movie] = Json.parse(str).validate[Movie] match {
     case JsError(e) =>
       println(e);
