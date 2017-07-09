@@ -11,7 +11,11 @@ import org.apache.spark.streaming.kafka010._
 import org.apache.spark.{SparkConf, SparkFiles}
 import play.api.libs.json._
 
+import scala.collection.Map
+
 object Proj extends App {
+  val ok = new Array(5)
+  ok.map
   def stringToMovie(str: String) : Option[Movie] = Json.parse(str).validate[Movie] match {
     case JsError(e) =>
       println(e);
@@ -46,6 +50,7 @@ object Proj extends App {
     val ssc = new StreamingContext(conf, Seconds(2))
     ssc.checkpoint("checkpoint")
     ssc.sparkContext.addFile(scriptFile)
+    ssc.sparkContext.addFile("payload.pickle")
 
     val topics = Array("test")
     val stream = KafkaUtils.createDirectStream[String, String](
@@ -57,7 +62,6 @@ object Proj extends App {
     stream.foreachRDD { rdd =>
       // Calling the python script to analize the data
       val pipeRDD = rdd.map(x => x.value()).pipe(SparkFiles.get(scriptFile))
-      // Sending the data to kafka
       pipeRDD.foreachPartition(partition => {
         // Initializing Kafka producer for the partition
         val props = new java.util.HashMap[String, Object]()
