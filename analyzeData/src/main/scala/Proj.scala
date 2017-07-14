@@ -25,7 +25,7 @@ object Proj extends App {
     new AnalyzedMovie(movie)
   }
 
-  def sendMessage(x: String, producer: KafkaProducer[String, String]) = {
+  def                                                                                       sendMessage(x: String, producer: KafkaProducer[String, String]) = {
     val message = new ProducerRecord[String, String]("AnalyzedData", null, x)
     producer.send(message)
   }
@@ -35,7 +35,7 @@ object Proj extends App {
       "bootstrap.servers" -> "localhost:9092",
       "key.deserializer" -> classOf[StringDeserializer],
       "value.deserializer" -> classOf[StringDeserializer],
-      "group.id" -> "use_a_separate_group_id_for_each_stream",
+      "group.id" -> "use_a_separate_group_id_for_each_stream2",
       //    "auto.offset.reset" -> "latest",
       "auto.offset.reset" -> "earliest",
       "enable.auto.commit" -> (false: java.lang.Boolean)
@@ -58,6 +58,7 @@ object Proj extends App {
     )
     stream.map(record => (record.key, record.value))
     stream.foreachRDD { rdd =>
+//      println(Calendar.getInstance().getTime + " : Analyzed : " + rdd.count() + " elemts")
       // Calling the python script to analize the data
       val pipeRDD = rdd.map(x => x.value()).pipe(SparkFiles.get(scriptFile))
       pipeRDD.foreachPartition(partition => {
