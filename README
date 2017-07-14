@@ -12,3 +12,5 @@ persist: persister analyzed movies from kafka to file system
 
 (4):
 sparkNotebook: use analyzed movies from kafka to print cool graphics
+
+More explanation about the pipeline in Hadoop-spark.pdf
